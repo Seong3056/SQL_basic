@@ -46,13 +46,135 @@ CREATE TABLE table1(
 );
 -- 테이블의 인덱스 확인
 SHOW INDEX FROM table1;
+-- > key_name : 'primary'는 '기본키로 설정해서 자동으로 생성된 인덱스'라는 의미(클러스터형 인덱스)
+-- > column_name : 해당 컬럼에 인덱스가 만들어져 있다는 뜻
+-- > Non_unique : 중복이 허용된다 라는 뜻. 0이면 중복이 허영되지 않고, 1이면 중복이 허용됨
+
+-- 고유 인덱스(Unique index)
+-- > 인덱스의 값이 중복되지 않는다는 의미. 반대 의미로 단순 인덱스 (Non-Unique Index)가 있음
+-- > 기본키(Primary Key)나 고유키(Unique)로 지정하면 값이 중복되지 않으므로 고유 인덱스가 생성됨
+-- > 고유키도 인덱스가 자동으로 생성되며, 고유키로 생성되는 인덱스는 보조 인덱스
+-- -- 보조 인덱스 (Secondary Index) : 책의 색인과 같이 단어를 찾고 단어의 주소를 찾아야 실제 내용이 있는 형태
+CREATE TABLE table2(
+	col1 	INT PRIMARY KEY,
+	col2 	INT UNIQUE,
+	col3 	INT UNIQUE
+);
+SHOW INDEX FROM table2;
+-- Key_name에 열 이름이 쓰여진 것은 보조인덱스
+-- 고유키도 중복을 허용하지 않기 때문에 Non_unique가 0
+-- 고유키를 여러개 지정할 수 있듯이 보조 인덱스도 여러 개 만들 수 있음
+
+-- 클러스터형 인덱스의 특징
+-- > 기본키로 지정하면 자동으로 생성됨
+-- > 테이블에 1개만 생성됨
+-- > 어떤 열을 기본키로 지정해서 클러스터형 인덱스가 생성되면 그 열을 기준으로 자동 정렬됨
+DROP TABLE IF EXISTS buy,member;
+CREATE TABLE member(
+	mem_id		CHAR(8),
+	mem_name 	VARCHAR(10),
+	mem_number	INT,
+	addr		CHAR(2)
+);
+INSERT INTO `member` VALUES('TWC', '트와이스', 9, '서울');
+INSERT INTO `member` VALUES('BLK', '블랙핑크', 4, '경남');
+INSERT INTO `member` VALUES('WMN', '여자친구', 6, '경기');
+INSERT INTO `member` VALUES('OMY', '오마이걸', 7, '서울');
+SELECT * FROM `member` m ;
+DELETE FROM `member` WHERE mem_id = 'OMY';
+-- 입력한 순서 그대로 조회
+
+-- 위의 데이터에 기본키를 설정
+ALTER TABLE `member` 
+	ADD CONSTRAINT
+	PRIMARY KEY (mem_id);
+
+SELECT * FROM `member` m ;
+-- > 기본키를 설정하면 mem_id를 기준으로 정렬순서가 바뀜
+-- -- mem_id열을 기본키로 설정하면서 mem_id열에 클러스터형 인덱스가 생성되어 mem_id열을 기준으로 정렬된 것
+
+-- mem_id의 Primary Key를 제거하고 mem_name열을 Primary key로 지정
+ALTER TABLE `member` DROP PRIMARY KEY;
+ALTER TABLE `member` 
+	ADD CONSTRAINT 
+	PRIMARY KEY (mem_name);
+
+SELECT * FROM `member` m ;
+-- > mem_name열에 클러스터형 인덱스가 생성되었기 때문에 mem_name열을 기준으로 다시 정렬됨
+
+-- 데이터를 추가로 입력하면 기준에 맞춰 자동 정렬
+INSERT INTO `member` VALUES('GRL','소녀시대',8,'서울');
+SELECT * FROM `member` m ;
+
+-- -- 대용량의 데이터가 있는 상태에서 기본키를 변경하면 시간이 엄청 오래 걸릴 수 있음
+-- -- 위의 예제에서 회원 이름을 기본키로 설정하는 것은 실제로는 위험할 수 있음. 회원 이름은 중복될 수 있기 때문에
 
 
+-- 보조 인덱스의 특징
+-- > 테이블에 여러 개 설정할 수 있음
+-- -- 고유키를 여러 개 지정할 수 있는 것과 마찬가지 
+-- > 책에 색인을 만든다고 해서 책의 본문이 바뀌지 않는 것처럼 보조 인덱스를 만든다소해서 데이터의 순서나 내용이
+--   바뀌진 않는다.
+DROP TABLE IF EXISTS buy,member;
+CREATE TABLE member(
+	mem_id		CHAR(8),
+	mem_name 	VARCHAR(10),
+	mem_number	INT,
+	addr		CHAR(2)
+);
+INSERT INTO `member` VALUES('TWC', '트와이스', 9, '서울');
+INSERT INTO `member` VALUES('BLK', '블랙핑크', 4, '경남');
+INSERT INTO `member` VALUES('WMN', '여자친구', 6, '경기');
+INSERT INTO `member` VALUES('OMY', '오마이걸', 7, '서울');
+SELECT * FROM `member` m ;
+ALTER TABLE `member` 
+	ADD CONSTRAINT 
+	UNIQUE (mem_id);
+SELECT * FROM `member` m ;
+-- > 데이터의 순서에는 변화가 없음
+-- -- 즉, 보조 인덱스를 생성하더라도 데이터의 순서는 변경되지 않고 별도의 인덱스를 만드는 것
 
+-- mem_name열에 추가로 고유키 지정
+ALTER TABLE `member` 
+	ADD CONSTRAINT
+	UNIQUE (mem_name);
+SELECT * FROM `member` m ;
+-- > 데이터의 내용과 순서는 그대로이며, mem_id열과 mem_name열에 모두 보조 인덱스가 생성된 상태임
 
+INSERT INTO `member` VALUES('GRL', '소녀시대', 8, '서울');
+SELECT * FROM `member` m ;
+-- > 새로운 내용이 추가되면 제일 뒤에 추가됨
 
+-- 인덱스의 내부작동 원리
+-- > 인덱스가 늘 좋은 것은 아니므로 인덱스의 내부 작동 원리를 이해하고 
+-- > 인덱스를 사용해야할 경우와 사용하지 말아야 할 경우를 정확히 판단하는 것이 중요
 
+-- 균형 트리의 개념
+-- > 균형 트리 구조에서 데이터가 저장되는 공간을 노드(node)라고 함
+-- > 루트 노드(root node) : 노드의 가장 상위노드
+-- > 리프 노드(leaf node) : 제일 마지막에 존재하는 노드
+-- > 데이터가 적으면 2단계부터 데이터가 많아지면 3단계나 그 이상도 만들어질 수 있음
+-- > 루트 노드와 리프 노드의 중간에 끼인 노드들은 중간 노드(internal node)라고 부름
+ 
+-- > MySQL에서는 노드를 페이지(page)라고 부름
+-- > 페이지는 최소한의 저장 단뒤로, 16kbyte 크기를 가짐
+-- -- 데이터를 1건만 입력해도 1개의 페이지(16kbyte)가 필요
+-- > 균형 트리는 데이터를 검색할 때(SELECT 구문을 사용할 때) 뛰어난 성능을 발휘함
 
+-- 균형 트리의 페이지 분할
+-- > 인덱스는 균형 트리로 구성되어 있으므로 인덱스를 만들면 SELECT의 속도를 향상시킬 수 있음
+-- > 하지만 인덱스를 구성하면 데이터 변경 작업 (INSERT, UPDATE, DELETE)시 성능이 나빠짐
+-- -- 특히 INSERT 작업이 일어날 때 더 느리게 입력될 수 있음
+-- -- > 페이지 분할 작업이 발생하기 때문
+-- -- > 페이지분할 : 새로운 페이지를 준비해서 데이터를 나누는 작업
+
+-- 보조 인덱스가 생성되어도 입력한 것과 순서가 동일함
+-- > 보조 인덱스는 데이터페이지를 건드리지 않ㅇ므
+-- > 대신 별도의 공간에 보조 인덱스를 생성
+
+-- 1. 인덱스 페이지의 리프 페이지에 인덱스로 구성한 열을 정렬
+-- 2. 실제 데이터가 있는 위치를 준비
+-- > 데이터의 위치는 페이지번호 +  #위치로 기록됨
 
 
 
