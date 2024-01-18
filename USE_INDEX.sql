@@ -124,10 +124,10 @@ DROP PRIMARY KEY;
 -- > mem_id 열을 buy가 참조하고 있기 때문에 에러 발생
 -- -- 기본키를 제거하기 전에 외래 키 관께를 먼저 제거해야함
 
--- 테이블에느 ㄴ여러 개의 외래키가 있을 수 있기 때문에 먼저 외래키의 이름을 파악해야함
+-- 테이블에는 여러 개의 외래키가 있을 수 있기 때문에 먼저 외래키의 이름을 파악해야함
 SELECT table_name, constraint_name
 FROM information_schema.referential_constraints
-WHERE CONSTRAINT_SCHEMA = 'market_db';
+WHERE constraint_schema = 'market_db';
 -- > information_schema 데이터베이스의 referntial_constraints 테이블은 mysql에 포함된
 -- > 시스템 데이터베이스와 테이블
 -- -- mysql 전체의 외래키 정보가 들어있음
